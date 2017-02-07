@@ -6,12 +6,12 @@
  * simple photo gallery web app.
  */
 var http = require('http');
+var url = require('url');
 var fs = require('fs');
 var port = 3000;
 
+var config = JSON.parse(fs.readFileSync('config.json'));
 var stylesheet = fs.readFileSync('gallery.css');
-
-var imageNames = ['ace.jpg', 'bubble.jpg', 'chess.jpg', 'fern.jpg', 'mobile.jpg'];
 
 function getImageNames(callback) {
   fs.readdir('images/', (err, fileNames) => {
@@ -29,13 +29,21 @@ function imageNamesToTags(fileNames) {
 function buildGallery(imageNames) {
   var html = '<!doctype html>';
       html += '<head>';
-      html += ' <title>Gallery</title>';
-      html += ' <link href="gallery.css" type="text/css" rel="stylesheet">';
+      html +=   '<title>' + config.title + '</title>';
+      html +=   '<link href="gallery.css" type="text/css" rel="stylesheet">';
       html += '</head>';
       html += '<body>';
-      html += ' <h1>Gallery</h1>';
-      html += imageNamesToTags(imageNames).join(' ');
-      html += ' <h1>Hello.</h1> Time is ' + Date.now();
+      html +=   '<h1>' + config.title + '</h1>';
+      html +=   '<form action="">';
+      html +=     '<input type="text" name="title">';
+      html +=     '<input type="submit" value="Change Gallery Title">';
+      html +=   '</form>';
+      html +=   imageNamesToTags(imageNames).join(' ');
+      html +=   '<form action ="" method="post" enctype="multipart/form-data">';
+      html +=     '<input type="file" name="image">';
+      html +=     '<input type="submit" value="Upload Image">';
+      html +=   '</form>';
+      html +=   '<h1>Hello.</h1> Time is ' + Date.now();
       html += '</body>';
   return html;
 }
@@ -68,13 +76,51 @@ function serveImage(filename, req, res) {
   });
 }
 
+function uploadImage(req, res) {
+  var body = '';
+
+  req.on('error', () => {
+    res.statusCode = 500;
+    res.end();
+  });
+
+  req.on('data', (data) => {
+    body += data;
+  });
+
+  req.on('end', () => {
+    fs.writeFile('filename', body, (err) => {
+      if(err) {
+        console.error(err);
+        res.statusCode = 500;
+        res.end();
+        return;
+      }
+
+      serveGallery(req, res);
+    });
+  });
+}
+
 var server = http.createServer((req, res) => {
+  var urlParts = url.parse(req.url)
 
-  switch(req.url) {
+  if(urlParts.query) {
+    var matches = /title=(.+)($|&)/.exec(urlParts.query);
+    if(matches && matches[1]) {
+      config.title = decodeURIComponent(matches[1]);
+      fs.writeFile('config.json', JSON.stringify(config));
+    }
+  }
 
+  switch(urlParts.pathname) {
     case '/':
     case "/gallery":
-      serveGallery(req, res);
+      if(req.method == 'GET') {
+        serveGallery(req, res);
+      } else if(req.method == 'POST') {
+        uploadImage(req, res);
+      }
       break;
 
     case "/gallery.css":
