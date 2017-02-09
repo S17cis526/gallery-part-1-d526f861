@@ -20,9 +20,9 @@ function getImageNames(callback) {
   });
 }
 
-function imageNamesToTags(fileNames) {
-  return fileNames.map((fileName) => {
-    return `<a href="${fileName}"><img src="${fileName}" alt="${fileName}"></a>`;
+function imageNamesToTags(imageNames) {
+  return imageNames.map((imageName) => {
+    return `<a href="${imageName}"><img src="${imageName}" alt="${imageName}"></a>`;
   });
 }
 
