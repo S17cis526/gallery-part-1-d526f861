@@ -167,7 +167,7 @@ function handleRequest(req, res) {
 
     default:
       if(staticFiles.isCached('public' + req.url)) {
-        staticFiles.serveFile('public' + req.url);
+        staticFiles.serveFile('public' + req.url, req, res);
       }
       else serveImage(req.url, req, res);
   }
